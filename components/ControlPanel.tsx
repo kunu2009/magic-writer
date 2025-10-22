@@ -1,17 +1,17 @@
-
-
 import React, { useState } from 'react';
 import { AttachedFile, AiMode } from '../types';
-import { SparklesIcon, DocumentTextIcon, PaperClipIcon, XMarkIcon, LightbulbIcon } from './icons';
+import { SparklesIcon, DocumentTextIcon, PaperClipIcon, XMarkIcon, LightbulbIcon, SunIcon, MoonIcon } from './icons';
 
 interface ControlPanelProps {
   onGenerate: (prompt: string, files: AttachedFile[]) => void;
   onSuggest: () => void;
   isLoading: boolean;
   activeAiMode: AiMode | null;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
-const ControlPanel: React.FC<ControlPanelProps> = ({ onGenerate, onSuggest, isLoading, activeAiMode }) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({ onGenerate, onSuggest, isLoading, activeAiMode, theme, onToggleTheme }) => {
   const [prompt, setPrompt] = useState('');
   const [files, setFiles] = useState<AttachedFile[]>([]);
 
@@ -42,9 +42,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onGenerate, onSuggest, isLo
 
   return (
     <div className="w-full md:w-1/3 lg:w-1/4 h-screen bg-slate-100 dark:bg-slate-800 p-6 flex flex-col border-r border-slate-200 dark:border-slate-700">
-      <div className="flex items-center gap-3 mb-8">
-        <DocumentTextIcon className="w-8 h-8 text-indigo-500" />
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Magic Writer</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <DocumentTextIcon className="w-8 h-8 text-indigo-500" />
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Magic Writer</h1>
+        </div>
+        <button
+          onClick={onToggleTheme}
+          className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-800 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
+        </button>
       </div>
 
       <div className="flex-grow overflow-y-auto pr-2">

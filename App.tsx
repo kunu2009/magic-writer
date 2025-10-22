@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import ControlPanel from './components/ControlPanel';
 import InlineToolbar from './components/InlineToolbar';
@@ -17,6 +16,33 @@ const App: React.FC = () => {
   const [grammarErrors, setGrammarErrors] = useState<GrammarError[]>([]);
   const editorRef = useRef<HTMLDivElement>(null);
   const grammarCheckTimeoutRef = useRef<number | null>(null);
+  
+  /**
+   * Theme Management
+   * - A state `theme` holds the current theme ('light' or 'dark').
+   * - It initializes from `localStorage` to remember the user's last choice.
+   * - If no choice is saved, it defaults to the user's system preference.
+   * - An effect hook updates the `<html>` element with the 'dark' class and saves the theme to `localStorage`.
+   */
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const userPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return (savedTheme as 'light' | 'dark') || (userPrefersDark ? 'dark' : 'light');
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  }, []);
 
   const handleGenerate = useCallback(async (prompt: string, files: AttachedFile[]) => {
     setIsLoading(true);
@@ -210,7 +236,14 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen font-sans">
-      <ControlPanel onGenerate={handleGenerate} onSuggest={handleSuggest} isLoading={isLoading} activeAiMode={activeAiMode} />
+      <ControlPanel 
+        onGenerate={handleGenerate} 
+        onSuggest={handleSuggest} 
+        isLoading={isLoading} 
+        activeAiMode={activeAiMode}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
       <main className="flex-grow h-screen flex flex-col relative" onMouseUp={handleMouseUp}>
         <div className="flex-grow p-8 md:p-16 overflow-y-auto">
           <div
