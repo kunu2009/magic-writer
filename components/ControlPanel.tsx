@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { AttachedFile, AiMode } from '../types';
 import { SparklesIcon, DocumentTextIcon, PaperClipIcon, XMarkIcon, LightbulbIcon } from './icons';
@@ -14,17 +15,21 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onGenerate, onSuggest, isLo
   const [prompt, setPrompt] = useState('');
   const [files, setFiles] = useState<AttachedFile[]>([]);
 
+  // FIX: Refactored to use a for...of loop to handle file uploads.
+  // This resolves a type inference issue where `file` was being treated as `unknown` inside the `forEach` callback.
+  // This new implementation is more robust and ensures correct typing.
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      const newFiles = Array.from(event.target.files);
-      newFiles.forEach(file => {
+      for (const file of event.target.files) {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64 = (e.target?.result as string).split(',')[1];
-          setFiles(prev => [...prev, { name: file.name, type: file.type, base64 }]);
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            const base64 = reader.result.split(',')[1];
+            setFiles(prev => [...prev, { name: file.name, type: file.type, base64 }]);
+          }
         };
         reader.readAsDataURL(file);
-      });
+      }
     }
   };
 

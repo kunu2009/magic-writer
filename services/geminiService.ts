@@ -1,6 +1,7 @@
 
+
 import { GoogleGenAI, Type, Part } from "@google/genai";
-import { AttachedFile, Suggestion } from '../types';
+import { AttachedFile, Suggestion, GrammarError } from '../types';
 
 if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable not set");
@@ -64,12 +65,11 @@ export const getSuggestions = async (fullText: string): Promise<Suggestion[]> =>
     const model = 'gemini-2.5-pro';
     const prompt = `Analyze the following text for clarity, conciseness, and impact. Provide suggestions to improve it. For each suggestion, identify the exact original text to be replaced and provide the improved version. Focus on high-impact changes. Return an empty array if no suggestions are found.`;
 
+    // FIX: The 'contents' field was previously an array of objects, which is an invalid format.
+    // It should be a single string or a Content object. Here we combine them into a single string.
     const response = await ai.models.generateContent({
       model: model,
-      contents: [
-        {text: prompt},
-        {text: `\n\n**Text to Analyze:**\n---\n${fullText}\n---`}
-      ],
+      contents: `${prompt}\n\n**Text to Analyze:**\n---\n${fullText}\n---`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -101,4 +101,51 @@ export const getSuggestions = async (fullText: string): Promise<Suggestion[]> =>
     console.error("Error getting suggestions:", error);
     return [];
   }
+};
+
+export const checkGrammarAndSpelling = async (fullText: string): Promise<GrammarError[]> => {
+    if (fullText.trim().length < 10) return [];
+
+    try {
+        const model = 'gemini-2.5-flash';
+        const prompt = `You are an expert proofreader. Analyze the following text for spelling and grammatical errors. For each error you find, provide the exact incorrect text, the corrected version, and a brief explanation of the error. Return an empty array if no errors are found.`;
+
+        // FIX: The 'contents' field was previously an array of objects, which is an invalid format.
+        // It should be a single string or a Content object. Here we combine them into a single string.
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: `${prompt}\n\n**Text to Analyze:**\n---\n${fullText}\n---`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            errorText: {
+                                type: Type.STRING,
+                                description: "The exact word or phrase from the text that contains an error."
+                            },
+                            correction: {
+                                type: Type.STRING,
+                                description: "The corrected version of the word or phrase."
+                            },
+                            explanation: {
+                                type: Type.STRING,
+                                description: "A brief, clear explanation of the error (e.g., 'Spelling mistake', 'Subject-verb agreement')."
+                            }
+                        },
+                        required: ["errorText", "correction", "explanation"],
+                    },
+                },
+            }
+        });
+
+        const jsonText = response.text.trim();
+        const errors = JSON.parse(jsonText);
+        return errors.map((e: Omit<GrammarError, 'id'>) => ({ ...e, id: Math.random().toString(36).substr(2, 9) }));
+    } catch (error) {
+        console.error("Error checking grammar and spelling:", error);
+        return [];
+    }
 };
